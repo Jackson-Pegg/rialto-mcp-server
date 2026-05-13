@@ -27,6 +27,3 @@ Each loan record exposes the fields an asset manager needs to make decisions:
 
 Claude queries the MCP server and returns all Miami loans with balances, property types, and watchlist flags.
 
-## Production Notes
-
-In production, the in-memory dataset would be replaced with a live database connection. Credentials would be stored securely in environment variables
