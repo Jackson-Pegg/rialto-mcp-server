@@ -2,6 +2,12 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("Rialto Loan Database")
 
+# Schema design: each loan record is flat (no nested objects) to keep MCP tool responses
+# token-efficient and easy for LLMs to reason over. Fields chosen reflect the minimum
+# viable data an asset manager needs to triage a position: identity (id, property),
+# geography (market), exposure (balance), risk bucket (status), and collateral type (type).
+# In production these records would be hydrated from a loan-level database; status would
+# be computed nightly from covenant tests and payment history rather than stored directly.
 LOANS = [
     {"id": "L001", "property": "Brickell Office Tower", "market": "Miami", "balance": 15000000, "status": "current", "type": "office"},
     {"id": "L002", "property": "Wynwood Retail Center", "market": "Miami", "balance": 8500000, "status": "watchlist", "type": "retail"},
@@ -39,6 +45,18 @@ def get_portfolio_summary() -> dict:
         "total_balance": total_balance,
         "status_breakdown": status_counts
     }
+
+@mcp.tool()
+def get_loans_by_status(status: str) -> list:
+    """Filter loans by risk status. Valid values: current, watchlist, default."""
+    valid_statuses = {"current", "watchlist", "default"}
+    normalized = status.lower()
+    if normalized not in valid_statuses:
+        return [{"error": f"Invalid status '{status}'. Must be one of: {', '.join(sorted(valid_statuses))}"}]
+    results = [loan for loan in LOANS if loan["status"] == normalized]
+    if not results:
+        return [{"error": f"No loans found with status '{normalized}'"}]
+    return results
 
 if __name__ == "__main__":
     mcp.run()
